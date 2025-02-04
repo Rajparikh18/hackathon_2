@@ -1,33 +1,41 @@
 import { useState } from 'react'
+import axios from 'axios'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [image, setImage] = useState(null)
+
+  const handleImageChange = (e) => {
+    setImage(e.target.files[0])
+    console.log(e.target.files[0]);
+  }
+
+  const handleSubmit = async () => {
+    const formData = new FormData()
+    formData.append('image', image)
+
+    try {
+      console.log('Uploading image...')
+      const response = await axios.post('/api/captureimage', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      console.log(response.data)
+    } catch (error) {
+      console.error('Error uploading image:', error)
+    }
+  }
 
   return (
     <>
       <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <input type="file" onChange={handleImageChange} />
+        <button onClick={handleSubmit}>Capture Image</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }

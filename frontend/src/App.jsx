@@ -5,88 +5,56 @@ import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [image, setImage] = useState(null);
-  const [result, setResult] = useState('');
-  const [preview, setPreview] = useState('');
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [filePath, setFilePath] = useState('');
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
-    
-    // Create preview URL
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleFileChange = (event) => {
+    setFile(event.target.files[0]);
   };
 
-  const handleSubmit = async () => {
-    if (!image) {
-      alert('Please select an image first');
+  const handleUpload = async () => {
+    if (!file) {
+      setMessage('Please select a file first.');
       return;
     }
 
     const formData = new FormData();
-    formData.append('image', image);
+    formData.append('image', file);
 
     try {
-      console.log('Processing image...');
-      const response = await axios.post('/api/processImage', formData, {
+      setUploading(true);
+      setMessage('Uploading...');
+      const response = await axios.post('/api/upload-image', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       });
-      setResult(response.data.result);
+      setFilePath(response.data.file_path);
+      setMessage('Upload successful!');
     } catch (error) {
-      console.error('Error processing image:', error);
-      setResult('Error: ' + error.message);
+      setMessage('Upload failed.');
+      console.error('Upload error:', error);
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Image Processor</h1>
-      
-      <div className="space-y-4">
+    <div>
+      <h2>Upload Image</h2>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload} disabled={uploading}>Upload</button>
+      {message && <p>{message}</p>}
+      {filePath && (
         <div>
-          <input 
-            type="file" 
-            onChange={handleImageChange} 
-            accept="image/*"
-            className="mb-2"
-          />
-          <button 
-            onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Process Image
-          </button>
+          <p>File uploaded successfully:</p>
+          <a href={filePath} target="_blank" rel="noopener noreferrer">View File</a>
         </div>
-
-        {preview && (
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Selected Image:</h3>
-            <img 
-              src={preview} 
-              alt="Preview" 
-              className="max-w-md rounded shadow"
-            />
-          </div>
-        )}
-
-        {result && (
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Result:</h3>
-            <div className="p-4 border rounded bg-gray-50">
-              {result}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
-};
+}
+
 export default App

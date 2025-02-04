@@ -84,6 +84,39 @@ app.post('/macroblueprints', async (req, res) => {
     }
 });
 
+app.post('/upload-image', upload.single('image'), async (req, res) => {
+    console.log("Hello from upload-img")
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+  
+      // Replace with your Langflow API endpoint and flow ID
+      const LANGFLOW_URL = process.env.LANGFLOW_URL || 'https://langflow.example.com';
+      const FLOW_ID = process.env.FOOD_RECOGNITION; // Replace with your flow ID
+  
+      // Prepare data to upload to Langflow
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(req.file.path));
+  
+      // POST the image to Langflow's upload endpoint
+      const response = await axios.post(`${LANGFLOW_URL}/api/v1/files/upload/${FLOW_ID}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...formData.getHeaders(),
+        },
+      });
+      
+      const { file_path } = response.data;
+      console.log(response);
+      // Respond with the file path from Langflow
+      res.json({ file_path });
+    } catch (error) {
+      console.error('Error uploading image to Langflow:', error);
+      res.status(500).json({ error: 'Failed to upload image to Langflow' });
+    }
+  });
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

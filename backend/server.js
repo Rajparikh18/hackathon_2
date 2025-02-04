@@ -1,7 +1,13 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import fetch from 'node-fetch';
+import multer from 'multer';
 const app = express();
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage, 
+    limits: { fileSize: 5 * 1024 * 1024 } // Limit to 5MB
+  });
 const PORT = process.env.PORT || 3000;
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -25,7 +31,7 @@ app.get('/test', (req, res) => {
 // langflow connection code 
 
 const BASE_URL = 'https://api.langflow.astra.datastax.com';
-const APPLICATION_TOKEN = process.env.LANGFLOW_APP_TOKEN; // Store in .env file
+const APPLICATION_TOKEN = process.env.FOOD_RECOGNITION; // Store in .env file
 const FLOW_ID = 'b067f448-a52d-4d3d-a4b7-c05ecb40025c';
 const LANGFLOW_ID = '22c0277d-7cf1-499a-bcef-6bd3be691afe';
 
@@ -63,6 +69,28 @@ async function callLangflow(inputValue, inputType = 'chat', outputType = 'chat',
 }
 
 // API route to handle requests
+app.post('/api/processImage',upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Image file is required' });
+        }
+        const imageData = req.file.buffer.toString('base64');
+        
+        if (!imageData) {
+            return res.status(400).json({ error: 'Image data is required' });
+        }
+
+        const result = await callLangflow(imageData, 'image', 'text', false);
+        res.json({ 
+            result: result.outputs[0].outputs[0].outputs.message.message.text 
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Failed to process image' });
+    }
+});
+
 
 app.post('/runlangflow', async (req, res) => {
     // Convert JSON input back to a single string input

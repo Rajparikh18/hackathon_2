@@ -1,13 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import fetch from 'node-fetch';
-import multer from 'multer';
 const app = express();
-const storage = multer.memoryStorage();
-const upload = multer({ 
-    storage, 
-    limits: { fileSize: 5 * 1024 * 1024 } // Limit to 5MB
-  });
+
 const PORT = process.env.PORT || 3000;
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -35,7 +30,7 @@ const APPLICATION_TOKEN = process.env.MACRONUTRIENTS_BREAKDOWN; // Store in .env
 const FLOW_ID = '5faea2f5-f1f9-437b-a0a0-0fcfc50fe584';
 const LANGFLOW_ID = '22c0277d-7cf1-499a-bcef-6bd3be691afe';
 
-// Function to call Langflow API
+// Function to call Langflow API ( this is for macroNutrients blueprint);
 async function callLangflow(inputValue, inputType = 'chat', outputType = 'chat', stream = false) {
     const url = `${BASE_URL}/lf/${LANGFLOW_ID}/api/v1/run/${FLOW_ID}?stream=${stream}`;
     const headers = {
@@ -83,6 +78,65 @@ app.post('/macroblueprints', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// this is food recommendation 7 day meal plan 
+const FOOD_LANGFLOW_ID = process.env.FOOD_RECOMMENDATION_LANGFLOW_ID; // Replace with actual Langflow ID
+const Recommendation_application_token=process.env.FOOD_RECOMMENDATION_APPLICATION_TOKEN
+async function callFoodLangflow(inputValue, inputType = 'chat', outputType = 'chat', stream = false) {
+    const url = `${BASE_URL}/lf/${FOOD_LANGFLOW_ID}/api/v1/run/${FLOW_ID}?stream=${stream}`;
+    const headers = {
+        'Authorization': `Bearer ${Recommendation_application_token}`, // Assuming the same token
+        'Content-Type': 'application/json'
+    };
+    const body = JSON.stringify({
+        input_value: inputValue,
+        input_type: inputType,
+        output_type: outputType,
+        tweaks: {
+            "Agent-lPYNg": {},
+            "ChatOutput-MGo4F": {},
+            "Prompt-oJJGM": {},
+            "ChatInput-1j3ni": {}
+        }
+    });
+
+    try {
+        const response = await fetch(url, { method: 'POST', headers, body });
+        const responseData = await response.json();
+        console.log('Food Recommendation Response:', JSON.stringify(responseData, null, 2));
+
+        if (!response.ok) {
+            throw new Error(`${response.status} ${response.statusText} - ${JSON.stringify(responseData)}`);
+        }
+
+        return responseData;
+    } catch (error) {
+        console.error('Langflow API Error:', error.message);
+        throw error;
+    }
+}
+
+app.post('/foodrecommendation', async (req, res) => {
+    const inputValue = Object.entries(req.body)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(' ');
+
+    try {
+        const result = await callFoodLangflow(inputValue);
+        
+        // Extracting the text response from Langflow
+        const outputMessage = result?.outputs?.[0]?.outputs?.[0]?.outputs?.message?.message?.text || "No response received";
+
+        res.json({ recommendation: outputMessage });
+    } catch (error) {
+        console.error('Food Recommendation Error:', error);
+        res.status(500).json({ error: 'Failed to fetch food recommendation' });
+    }
+});
+
+
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

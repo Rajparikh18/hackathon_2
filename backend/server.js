@@ -84,15 +84,15 @@ app.post('/macroblueprints', async (req, res) => {
     }
 });
 
-app.post('/upload-image', upload.single('image'), async (req, res) => {
-    console.log("Hello from upload-img")
+app.post('/api/upload-image', upload.single('image'), async (req, res) => {
+    console.log("Hello from upload-img");
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
   
       // Replace with your Langflow API endpoint and flow ID
-      const LANGFLOW_URL = process.env.LANGFLOW_URL || 'https://langflow.example.com';
+      const LANGFLOW_URL = process.env.LANGFLOW_URL || 'https://api.langflow.astra.datastax.com';
       const FLOW_ID = process.env.FOOD_RECOGNITION; // Replace with your flow ID
   
       // Prepare data to upload to Langflow
@@ -114,6 +114,44 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
     } catch (error) {
       console.error('Error uploading image to Langflow:', error);
       res.status(500).json({ error: 'Failed to upload image to Langflow' });
+    }
+  });
+
+app.post('/api/analyze-image', async (req, res) => {
+    try {
+      const { file_path } = req.body; // Get file path from request body
+  
+      if (!file_path) {
+        return res.status(400).json({ error: 'file_path is required' });
+      }
+  
+      // Langflow API and Flow ID
+      const LANGFLOW_URL = process.env.LANGFLOW_URL || 'https://api.langflow.astra.datastax.com';
+      const FLOW_ID = process.env.FOOD_RECOGNITION; // Replace with your flow ID
+  
+      // Prepare data to send for AI analysis
+      const requestData = {
+        output_type: 'chat',
+        input_type: 'chat',
+        tweaks: {
+          'ChatInput-opTYf': {
+            files: file_path
+          },
+        },
+      };
+  
+      // Send image for AI processing
+      const response = await axios.post(`${LANGFLOW_URL}/api/v1/run/${FLOW_ID}?stream=false`, requestData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      // Return the AI's response
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      res.status(500).json({ error: 'Failed to analyze image' });
     }
   });
 

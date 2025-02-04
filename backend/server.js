@@ -31,8 +31,8 @@ app.get('/test', (req, res) => {
 // langflow connection code 
 
 const BASE_URL = 'https://api.langflow.astra.datastax.com';
-const APPLICATION_TOKEN = process.env.FOOD_RECOGNITION; // Store in .env file
-const FLOW_ID = 'b067f448-a52d-4d3d-a4b7-c05ecb40025c';
+const APPLICATION_TOKEN = process.env.MACRONUTRIENTS_BREAKDOWN; // Store in .env file
+const FLOW_ID = '5faea2f5-f1f9-437b-a0a0-0fcfc50fe584';
 const LANGFLOW_ID = '22c0277d-7cf1-499a-bcef-6bd3be691afe';
 
 // Function to call Langflow API
@@ -57,6 +57,7 @@ async function callLangflow(inputValue, inputType = 'chat', outputType = 'chat',
     try {
         const response = await fetch(url, { method: 'POST', headers, body });
         const responseData = await response.json();
+        console.log('Full Response:', JSON.stringify(responseData, null, 2));
         console.log(responseData.outputs[0].outputs[0].outputs.message.message.text);
         if (!response.ok) {
             throw new Error(`${response.status} ${response.statusText} - ${JSON.stringify(responseData)}`);
@@ -68,31 +69,7 @@ async function callLangflow(inputValue, inputType = 'chat', outputType = 'chat',
     }
 }
 
-// API route to handle requests
-app.post('/api/processImage',upload.single('image'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'Image file is required' });
-        }
-        const imageData = req.file.buffer.toString('base64');
-        
-        if (!imageData) {
-            return res.status(400).json({ error: 'Image data is required' });
-        }
-
-        const result = await callLangflow(imageData, 'image', 'text', false);
-        res.json({ 
-            result: result.outputs[0].outputs[0].outputs.message.message.text 
-        });
-
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Failed to process image' });
-    }
-});
-
-
-app.post('/runlangflow', async (req, res) => {
+app.post('/macroblueprints', async (req, res) => {
     // Convert JSON input back to a single string input
     const inputValue = Object.entries(req.body)
         .map(([key, value]) => `${key}: ${value}`)
@@ -106,20 +83,6 @@ app.post('/runlangflow', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-app.post('/captureimage', async (req, res) => { 
-    const { image } = req.body;
-    console.log(image);
-    res.json({ message: 'Image received' });
-    });
-
-
-
-
-
-
-
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
